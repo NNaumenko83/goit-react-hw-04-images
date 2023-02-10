@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -7,51 +7,48 @@ import Searchbar from '../Searchbar';
 import ImageGallery from '../ImageGallery';
 import Modal from '../Modal';
 
-export class App extends Component {
-  state = {
-    query: '',
-    largeImageURL: '',
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [largeImageURL, setlargeImageURL] = useState('');
+  const [tags, setTags] = useState('');
+
+  const onSubmit = newQuery => {
+    setQuery(newQuery);
   };
 
-  onSubmit = newQuery => {
-    this.setState({ query: newQuery });
+  const handleImageClick = (image, imageTag) => {
+    setlargeImageURL(image);
+    setTags(imageTag);
   };
 
-  handleImageClick = image => {
-    this.setState({ largeImageURL: image });
+  const closeModal = () => {
+    setlargeImageURL('');
+    setTags('');
   };
 
-  closeModal = () => {
-    this.setState({ largeImageURL: '' });
-  };
-
-  render() {
-    const { query, largeImageURL } = this.state;
-
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.onSubmit} />
-        {query && (
-          <ImageGallery query={query} onImageClick={this.handleImageClick} />
-        )}
-        {largeImageURL && (
-          <Modal closeModal={this.closeModal}>
-            <img src={largeImageURL} alt="XXX" />
-          </Modal>
-        )}
-        <ToastContainer
-          position="top-center"
-          autoClose={1000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-      </div>
-    );
-  }
-}
+  return (
+    <div className={css.App}>
+      <Searchbar onSubmit={onSubmit} />
+      {query && (
+        <ImageGallery searchQuery={query} openModalImage={handleImageClick} />
+      )}
+      {largeImageURL && (
+        <Modal closeModal={closeModal}>
+          <img src={largeImageURL} alt={tags} />
+        </Modal>
+      )}
+      <ToastContainer
+        position="top-center"
+        autoClose={1000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </div>
+  );
+};

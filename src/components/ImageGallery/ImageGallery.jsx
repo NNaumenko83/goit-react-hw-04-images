@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 
@@ -7,91 +7,71 @@ import Button from 'components/Button';
 import { getPhotos } from '../../services/api';
 import { ImageGalleryList } from './ImageGallery.styled';
 import Loader from '../Loader';
+import { useEffect } from 'react';
 
-class ImageGallery extends Component {
-  state = {
-    query: '',
-    page: 1,
-    images: [],
-    totalPages: null,
-    isLoading: false,
-    imageTag: '',
-  };
+const ImageGallery = ({ searchQuery, openModalImage }) => {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [totalPages, setTotalPages] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  // const [imageTag, setImageTag] = useState('');
 
-  async componentDidMount() {
-    this.setState({ query: this.props.query });
-  }
+  const loadMore = useRef(false);
 
-  async componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    if (query !== prevState.query) {
-      try {
-        this.setState({ isLoading: true });
-        const response = await getPhotos(query, page);
-        const totalPages = Math.ceil(response.totalHits / 12);
+  useEffect(() => {
+    setQuery(searchQuery);
+    setPage(1);
+    setImages([]);
+    setTotalPages('');
+    console.log('useEffect при зміні searchQuery', searchQuery);
+  }, [searchQuery]);
 
-        const imagesArray = response.hits;
-
-        this.setState({
-          images: imagesArray.map(
-            ({ id, webformatURL, largeImageURL, tags }) => ({
-              id,
-              webformatURL,
-              largeImageURL,
-              imageTag: tags,
-            })
-          ),
-          totalPages: totalPages,
-        });
-      } catch (error) {
-        console.log(error);
-        toast.error('Something went wrong!');
-      } finally {
-        this.setState({ isLoading: false });
-      }
-
+  useEffect(() => {
+    if (!query) {
       return;
     }
 
-    if (prevState.page !== page) {
+    const fetchData = async () => {
       try {
-        this.setState({ isLoading: true });
+        setIsLoading(true);
+
         const response = await getPhotos(query, page);
-        const newImagesArray = response.hits.map(
-          ({ id, webformatURL, largeImageURL }) => ({
+        const totalPages = Math.ceil(response.totalHits / 12);
+        const imagesArray = response.hits.map(
+          ({ id, webformatURL, largeImageURL, tags }) => ({
             id,
             webformatURL,
             largeImageURL,
+            imageTag: tags,
           })
         );
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...newImagesArray],
-        }));
+        setImages(prevState => [...prevState, ...imagesArray]);
+        setTotalPages(totalPages);
       } catch (error) {
         console.log(error);
         toast.error('Something went wrong!');
       } finally {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       }
+    };
+
+    fetchData();
+  }, [query, page]);
+
+  const handleBattonClick = () => {
+    if (totalPages === page) {
+      toast.info('There is no more images');
       return;
     }
+    setPage(state => state + 1);
+    loadMore.current = true;
+  };
 
-    if (query !== this.props.query) {
-      this.setState({
-        query: this.props.query,
-        page: 1,
-        images: [],
-        totalPages: null,
-      });
-      return;
-    }
-
-    if (prevState === this.state) {
-      return;
-    }
-
-    if (prevState.page > 1) {
+  useEffect(() => {
+    if (page > 1 && loadMore.current) {
+      console.log('page:', page);
       const { height: cardHeight } = document
         .querySelector('ul')
         .firstElementChild.getBoundingClientRect();
@@ -101,49 +81,35 @@ class ImageGallery extends Component {
         behavior: 'smooth',
       });
     }
+  });
 
-    return;
-  }
-
-  handleBattonClick = () => {
-    if (this.state.totalPages === this.state.page) {
-      toast.info('There is no more images');
-      return;
-    }
-    this.setState(({ page }) => ({ page: page + 1 }));
+  const onImageClick = id => {
+    const { largeImageURL, imageTag } = images.find(image => image.id === +id);
+    openModalImage(largeImageURL, imageTag);
+    loadMore.current = false;
   };
 
-  onImageClick = id => {
-    this.props.onImageClick(
-      this.state.images.find(image => image.id === +id).largeImageURL
-    );
-  };
-
-  render() {
-    const { images, imageTag, isLoading, totalPages } = this.state;
-
-    return (
-      <>
-        <ImageGalleryList>
-          {images.map(image => (
-            <ImageGalleryItem
-              key={image.id}
-              image={image.webformatURL}
-              id={image.id}
-              onImageClick={id => {
-                this.onImageClick(id);
-              }}
-              alt={imageTag}
-            />
-          ))}
-        </ImageGalleryList>
-        {isLoading && <Loader />}
-        {totalPages > 1 && <Button onClick={this.handleBattonClick} />}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <ImageGalleryList>
+        {images.map(image => (
+          <ImageGalleryItem
+            key={image.id}
+            image={image.webformatURL}
+            id={image.id}
+            onImageClick={id => {
+              onImageClick(id);
+            }}
+            alt={image.imageTag}
+          />
+        ))}
+      </ImageGalleryList>
+      {isLoading && <Loader />}
+      {totalPages > 1 && <Button onClick={handleBattonClick} />}
+    </>
+  );
+};
 
 export default ImageGallery;
 
-ImageGallery.propTypes = { query: PropTypes.string.isRequired };
+ImageGallery.propTypes = { searchQuery: PropTypes.string.isRequired };
