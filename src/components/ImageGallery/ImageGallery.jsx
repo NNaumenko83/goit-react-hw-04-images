@@ -24,7 +24,6 @@ const ImageGallery = ({ searchQuery, openModalImage }) => {
     setPage(1);
     setImages([]);
     setTotalPages('');
-    console.log('useEffect при зміні searchQuery', searchQuery);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -50,7 +49,6 @@ const ImageGallery = ({ searchQuery, openModalImage }) => {
         setImages(prevState => [...prevState, ...imagesArray]);
         setTotalPages(totalPages);
       } catch (error) {
-        console.log(error);
         toast.error('Something went wrong!');
       } finally {
         setIsLoading(false);
@@ -71,7 +69,6 @@ const ImageGallery = ({ searchQuery, openModalImage }) => {
 
   useEffect(() => {
     if (page > 1 && loadMore.current) {
-      console.log('page:', page);
       const { height: cardHeight } = document
         .querySelector('ul')
         .firstElementChild.getBoundingClientRect();
